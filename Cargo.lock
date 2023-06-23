@@ -151,6 +151,7 @@ dependencies = [
 name = "d2l-rust"
 version = "0.1.0"
 dependencies = [
+ "rand",
  "tch",
 ]
 
