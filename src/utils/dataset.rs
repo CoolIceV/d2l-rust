@@ -1,11 +1,19 @@
 #![cfg_attr(debug_assertions, allow(dead_code))]
 
-use tch::Tensor;
+use tch::{Tensor, Kind};
 use std::cmp::min;
 use rand::seq::SliceRandom;
 use tch::IndexOp;
 
+
+
 pub fn data_iter(batch_size: usize, features: &Tensor, labels: &Tensor) -> Vec<(Tensor, Tensor)> {
+    let mut batch_size = batch_size;
+    
+    if batch_size == 0 {
+        batch_size = features.size()[0] as usize
+    }
+    
     let mut rng = rand::thread_rng();
     let num_examples = *features.size().get(0).unwrap();
     let mut indices: Vec<i64> = (0..num_examples).collect();
