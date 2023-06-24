@@ -1,8 +1,8 @@
 use std::{ops::Add, cmp::min};
 
 use tch::{Tensor, Kind, Device};
-use rand::{Rng, seq::SliceRandom};
-use tch::{IndexOp, NewAxis};
+use rand::{seq::SliceRandom};
+use tch::{IndexOp};
 
 fn synthetic_data(w: Vec<f32>, b: f32, num: i32) -> (Tensor, Tensor){
     let mut x = Tensor::ones([num as i64, w.len() as i64], (Kind::Float, Device::Cpu));
