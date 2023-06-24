@@ -148,7 +148,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "d2l-rust"
+name = "d2l"
 version = "0.1.0"
 dependencies = [
  "rand",

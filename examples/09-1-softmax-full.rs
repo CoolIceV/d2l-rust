@@ -7,12 +7,17 @@
      t10k-labels-idx1-ubyte
 */
 
+
 use tch::{vision, Kind, Tensor, Device, IndexOp};
+use d2l::utils::dataset::data_iter;
+
 
 const IMAGE_DIM: i64 = 784;
 const LABELS: i64 = 10;
 
 fn main() {
+    tch::manual_seed(42);
+    
     let device = Device::cuda_if_available();
     let mut m = vision::mnist::load_dir("data/mnist").unwrap();
     m.train_images = m.train_images.to_device(device);
@@ -43,14 +48,18 @@ fn main() {
 
     let lr = 0.3;
     let num_epochs = 1000;
-    let batch_size = m.train_images.size()[0] as usize;
+    let batch_size = 500;
     let net = linear_net;
     let loss = cross_entropy;
 
     for epoch in 0..num_epochs {
-        let l = loss(&net(&m.train_images, &ws, &bs), &m.train_labels);
-        l.sum(Kind::Float).backward();
-        sgd(vec![&mut ws, &mut bs], lr, batch_size);
+        
+        for (x, y) in data_iter(batch_size, &m.train_images, &m.train_labels) {
+            let l = loss(&net(&x, &ws, &bs), &y);
+            l.sum(Kind::Float).backward();
+            sgd(vec![&mut ws, &mut bs], lr, batch_size);
+        }
+        
 
         tch::no_grad(||{
             let y_hat = net(&m.test_images, &ws, &bs);

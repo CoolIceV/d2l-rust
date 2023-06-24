@@ -9,6 +9,7 @@
 
 use tch::nn::{Module, OptimizerConfig};
 use tch::{nn, vision, Device};
+use d2l::utils::dataset::data_iter;
 
 const IMAGE_DIM: i64 = 784;
 const LABELS: i64 = 10;
@@ -24,8 +25,6 @@ fn main() {
         bs_init: Some(nn::Init::Const(0.)),
         bias: true,
     };
-
-    println!("{:?}", cfg);
 
     let net = nn::seq()
         .add(nn::linear(
@@ -43,13 +42,23 @@ fn main() {
     m.test_labels = m.test_labels.to_device(device);
 
     let lr = 0.3;
-    let num_epochs = 500;
+    let num_epochs = 1000;
+    let batch_size = 500;
+
     let mut opt = nn::Sgd::default().build(&vs, lr).unwrap();
+
     for epoch in 1..num_epochs {
+
+        for (x, y) in data_iter(batch_size, &m.train_images, &m.train_labels) {
+            let loss = net.forward(&x).cross_entropy_for_logits(&y);
+            opt.backward_step(&loss);
+                   
+        }
+
         let loss = net.forward(&m.train_images).cross_entropy_for_logits(&m.train_labels);
-        opt.backward_step(&loss);
         let test_accuracy = net.forward(&m.test_images).accuracy_for_logits(&m.test_labels);
-        println!(
+
+         println!(
             "epoch: {:4} train loss: {:8.5} test acc: {:5.2}%",
             epoch,
             f64::try_from(&loss).unwrap(),
