@@ -8,3 +8,5 @@ edition = "2021"
 [dependencies]
 tch = "0.13.0"
 rand ="0.8.5"
+polars = "0.30.0"
+plotters = "0.3.5"
