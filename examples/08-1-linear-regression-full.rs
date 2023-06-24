@@ -49,7 +49,7 @@ fn main() {
         for (x, y) in data_iter(batch_size, &features, &labels) {
             let l = loss(net(&x, &w, &b), &y);
             l.sum(Kind::Float).backward();
-            sgd(&mut vec![&mut w, &mut b], lr, batch_size);
+            sgd(vec![&mut w, &mut b], lr, batch_size);
         }
 
        print_epoch(loss, net, epoch, &features, &w, &b, &labels)
@@ -76,12 +76,11 @@ fn squared_loss(y_hat: Tensor, y: &Tensor) -> Tensor {
     (y_hat - y.reshape(size)).pow(&Tensor::from(2)) / 2
 }
 
-fn sgd(params: &mut Vec<&mut Tensor>, lr: f64, batch_size: usize) {
+fn sgd(params: Vec<&mut Tensor>, lr: f64, batch_size: usize) {
     tch::no_grad(|| {
-        for param in params.iter_mut() {
-            **param -= lr * param.grad() / (batch_size as f64);
+        for param in params.into_iter() {
+            *param -= lr * param.grad() / (batch_size as f64);
             _ = param.grad().zero_();
         } 
     })
-    
 }

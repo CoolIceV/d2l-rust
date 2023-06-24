@@ -7,21 +7,26 @@
      t10k-labels-idx1-ubyte
 */
 
-use tch::{kind, vision, Kind, Tensor};
-use tch::{IndexOp};
+use tch::{vision, Kind, Tensor, Device, IndexOp};
 
 const IMAGE_DIM: i64 = 784;
 const LABELS: i64 = 10;
+
 fn main() {
-    let m = vision::mnist::load_dir("data/mnist").unwrap();
+    let device = Device::cuda_if_available();
+    let mut m = vision::mnist::load_dir("data/mnist").unwrap();
+    m.train_images = m.train_images.to_device(device);
+    m.train_labels = m.train_labels.to_device(device);
+    m.test_images = m.test_images.to_device(device);
+    m.test_labels = m.test_labels.to_device(device);
     // println!("{:?}", m.train_images.size());
     // println!("{:?}", m.train_labels.size());
     // println!("{:?}", m.test_images.size());
     // println!("{:?}", m.train_images.i(0).size());
     // println!("{:?}", m.test_labels.size());
 
-    let mut ws = Tensor::zeros([IMAGE_DIM, LABELS], kind::FLOAT_CPU).set_requires_grad(true);
-    let mut bs = Tensor::zeros([LABELS], kind::FLOAT_CPU).set_requires_grad(true);
+    let mut ws = Tensor::zeros([IMAGE_DIM, LABELS], (Kind::Float, device)).set_requires_grad(true);
+    let mut bs = Tensor::zeros([LABELS], (Kind::Float, device)).set_requires_grad(true);
 
     // let x = Tensor::range(1, 10, kind::FLOAT_CPU);
     // let x = x.reshape([2, 5]);
@@ -37,23 +42,27 @@ fn main() {
     // println!("{}", accuracy(&y_hat, &y) / y.size()[0] as f64);
 
     let lr = 0.3;
-    let num_epochs = 500;
+    let num_epochs = 1000;
     let batch_size = m.train_images.size()[0] as usize;
     let net = linear_net;
     let loss = cross_entropy;
 
-
     for epoch in 0..num_epochs {
         let l = loss(&net(&m.train_images, &ws, &bs), &m.train_labels);
         l.sum(Kind::Float).backward();
-        sgd(&mut vec![&mut ws, &mut bs], lr, batch_size);
+        sgd(vec![&mut ws, &mut bs], lr, batch_size);
 
         tch::no_grad(||{
             let y_hat = net(&m.test_images, &ws, &bs);
-            let train_l = loss(&y_hat, &m.test_labels);
+            let loss = loss(&y_hat, &m.test_labels);
             let accuracy = accuracy(&y_hat, &m.test_labels);
-            println!("========================================");
-            println!("epoch {}, loss {} accuracy {}", epoch, train_l.mean(Kind::Float), accuracy);
+
+            println!(
+                "epoch: {:4} train loss: {:8.5} test acc: {:5.2}%",
+                epoch,
+                loss.mean(Kind::Float).double_value(&[]),
+                100. * accuracy,
+            );
         })
        
     }
@@ -70,12 +79,8 @@ fn linear_net(x: &Tensor, ws: &Tensor, bs: &Tensor) -> Tensor {
 }
 
 fn cross_entropy(y_hat: &Tensor, y: &Tensor) -> Tensor {
-    let out = Tensor::zeros(y.size(), (y.kind(), y.device()));
-    y.clone(&out);
-    let x = Tensor::range(0, y_hat.size()[0]-1, kind::INT64_CPU);
-    // x.print();
-    // out.print();
-    -y_hat.index(&[Some(x), Some(out)]).log()
+    let x = Tensor::arange(y_hat.size()[0], (Kind::Int64, y.device()));
+    -y_hat.index(&[Some(&x), Some(y)]).log()
 }
 
 fn accuracy(y_hat: &Tensor, y: &Tensor) -> f64 {
@@ -89,10 +94,10 @@ fn accuracy(y_hat: &Tensor, y: &Tensor) -> f64 {
     cmp.to_kind(y.kind()).sum(Kind::Float).double_value(&[]) / y.size()[0] as f64
 }
 
-fn sgd(params: &mut Vec<&mut Tensor>, lr: f64, batch_size: usize) {
+fn sgd(params: Vec<&mut Tensor>, lr: f64, batch_size: usize) {
     tch::no_grad(|| {
-        for param in params.iter_mut() {
-            **param -= lr * param.grad() / (batch_size as f64);
+        for param in params.into_iter() {
+            *param -= lr * param.grad() / (batch_size as f64);
             _ = param.grad().zero_();
         } 
     })
