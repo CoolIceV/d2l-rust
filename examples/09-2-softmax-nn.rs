@@ -8,7 +8,7 @@
 */
 
 use tch::nn::{Module, OptimizerConfig};
-use tch::{nn, vision, Device};
+use tch::{nn, vision, Device, Kind};
 use d2l::utils::dataset::data_iter;
 use plotters::prelude::*;
 
@@ -33,7 +33,8 @@ fn main() {
             IMAGE_DIM,
             LABELS,
             cfg,
-        ));
+        ))
+        .add_fn(|x| x.softmax(1, Kind::Float));
 
 
     let mut m = vision::mnist::load_dir("data/mnist").unwrap();
