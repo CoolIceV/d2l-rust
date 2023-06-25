@@ -20,7 +20,7 @@ fn main() {
     let mut model = MLP::new(IMAGE_DIM, HIDDEN_NODES, LABELS);
     let train_iter = data_iter(batch_size, &m.train_images, &m.train_labels);
     let test_iter = data_iter(0, &m.test_images, &m.test_labels);
-    train_ch3(&mut model, &train_iter, &test_iter,  cross_entropy_softmax, lr, num_epochs);
+    train_ch3_ani(&mut model, &train_iter, &test_iter,  cross_entropy_softmax, lr, num_epochs);
 }
 
 

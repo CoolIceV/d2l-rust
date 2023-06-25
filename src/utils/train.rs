@@ -1,5 +1,6 @@
 #![cfg_attr(debug_assertions, allow(dead_code))]
 
+use super::Animator;
 use super::model::Model;
 use tch::{Tensor, Kind};
 use tch::IndexOp;
@@ -76,6 +77,20 @@ where T: Model {
     for epoch in 0..num_epochs {
         let (train_l, train_acc) = train_epoch_ch3(model, train_iter, loss, lr);
         let test_acc = evaluate_accuracy(model, test_iter);
+        println!("epoch {:4}, train loss {:8.5}, train acc {:5.2}%, test acc {:5.2}%", epoch, train_l, 100. * train_acc, 100. * test_acc);
+    }
+}
+
+pub fn train_ch3_ani<T>(model: &mut T, train_iter: &Vec<(Tensor, Tensor)>, test_iter: &Vec<(Tensor, Tensor)>, loss: fn (y_hat: &Tensor, y: &Tensor) -> Tensor, lr: f64, num_epochs: usize) 
+where T: Model {
+    let mut a = Animator::new(&["loss", "train acc", "test acc"]);
+    for epoch in 0..num_epochs {
+        let (train_l, train_acc) = train_epoch_ch3(model, train_iter, loss, lr);
+        let test_acc = evaluate_accuracy(model, test_iter);
+        a.add_point("loss", epoch as f64, train_l);
+        a.add_point("train acc", epoch as f64, train_acc);
+        a.add_point("test acc", epoch as f64, test_acc);
+        a.draw();
         println!("epoch {:4}, train loss {:8.5}, train acc {:5.2}%, test acc {:5.2}%", epoch, train_l, 100. * train_acc, 100. * test_acc);
     }
 }

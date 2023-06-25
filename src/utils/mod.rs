@@ -15,3 +15,6 @@ pub use activation_function::*;
 
 pub mod optimizer;
 pub use optimizer::*;
+
+pub mod animator;
+pub use animator::*;
