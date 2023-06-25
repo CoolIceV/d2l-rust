@@ -1,3 +1,5 @@
+#![cfg_attr(debug_assertions, allow(dead_code))]
+
 use super::model::Model;
 use tch::{Tensor, Kind};
 use tch::IndexOp;
@@ -46,7 +48,7 @@ where T: Model {
         let mut metric = Accumulator::new(2);
 
         for (x, y) in data_iter {
-            let y_hat = model.net(&x);
+            let y_hat = model.forward(&x);
             metric.add(vec![accuracy(&y_hat, &y), y.size()[0] as f64]);
         }
 
@@ -58,10 +60,10 @@ pub fn train_epoch_ch3<T>(model: &mut T, train_iter: &Vec<(Tensor, Tensor)>, los
 where T: Model {
     let mut metric = Accumulator::new(3);
     for (x, y) in train_iter {
-        let y_hat = model.net(&x);
+        let y_hat = model.forward(&x);
         let l = loss(&y_hat, &y);
         l.sum(Kind::Float).backward();
-        model.updater(x.size()[0], lr);
+        model.update(x.size()[0], lr);
         metric.add(vec![l.sum(Kind::Float).double_value(&[]), accuracy(&y_hat, &y), y.size()[0] as f64]);
     }
 
@@ -75,6 +77,5 @@ where T: Model {
         let (train_l, train_acc) = train_epoch_ch3(model, train_iter, loss, lr);
         let test_acc = evaluate_accuracy(model, test_iter);
         println!("epoch {:4}, train loss {:8.5}, train acc {:5.2}%, test acc {:5.2}%", epoch, train_l, 100. * train_acc, 100. * test_acc);
-    // "epoch: {:4} train loss: {:8.5} test acc: {:5.2}%"
     }
 }

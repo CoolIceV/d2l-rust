@@ -1,10 +1,10 @@
-#![cfg_attr(debug_assertions, allow(dead_code))]
+#![cfg_attr(debug_assertions, allow(dead_code, unused_must_use))]
 
-use tch::{Tensor, Kind};
+use tch::{Tensor, vision};
 use std::cmp::min;
 use rand::seq::SliceRandom;
 use tch::IndexOp;
-
+use vision::dataset::Dataset;
 
 
 pub fn data_iter(batch_size: usize, features: &Tensor, labels: &Tensor) -> Vec<(Tensor, Tensor)> {
@@ -25,4 +25,19 @@ pub fn data_iter(batch_size: usize, features: &Tensor, labels: &Tensor) -> Vec<(
         iter.push((features.i(start..end), labels.i(start..end)));
     }
     iter
+}
+
+pub trait ToDevice {
+    fn to_device(self, device: tch::Device) -> Self;
+}
+
+impl ToDevice for Dataset {
+    fn to_device(self, device: tch::Device) -> Self {
+        let mut m = Dataset::from(self);
+        m.test_images = m.test_images.to_device(device);
+        m.test_labels = m.test_labels.to_device(device);
+        m.train_images = m.train_images.to_device(device);
+        m.train_labels = m.train_labels.to_device(device);
+        m
+    }
 }
