@@ -57,6 +57,23 @@ where T: Model {
     })
 }
 
+
+pub fn evaluate_loss<T>(model: &T, data_iter: &Vec<(Tensor, Tensor)>, loss: fn (y_hat: &Tensor, y: &Tensor) -> Tensor) -> f64 
+where T: Model {
+    tch::no_grad(|| {
+        let mut metric = Accumulator::new(2);
+
+        for (x, y) in data_iter {
+            let y_hat = model.forward(&x);
+            let y = y.reshape_as(&y_hat);
+            let l = loss(&y_hat, &y);
+            metric.add(vec![l.sum(Kind::Float).double_value(&[]), l.numel() as f64]);
+        }
+
+        metric.get(0) / metric.get(1)
+    })
+}
+
 pub fn train_epoch_ch3<T>(model: &mut T, train_iter: &Vec<(Tensor, Tensor)>, loss: fn (y_hat: &Tensor, y: &Tensor) -> Tensor, lr: f64) -> (f64, f64)
 where T: Model {
     let mut metric = Accumulator::new(3);

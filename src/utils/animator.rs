@@ -19,8 +19,8 @@ impl Animator {
             label: labels.iter().enumerate().map(|(i, &s)| (s.to_string(), i)).collect(),
             window: Window::new(
                 "Real-time Plot",
-                600,
-                400,
+                300,
+                200,
                 WindowOptions {
                     resize: true,
                     // scale: Scale::X2,
@@ -37,10 +37,10 @@ impl Animator {
     }
 
     pub fn draw(&mut self) {
-        let mut buf = vec![0; 300 * 200 * 3];
+        let mut buf = vec![0; 1024 * 768 * 3];
         let slice_buf: &mut [u8] = &mut buf;
         {
-            let root = BitMapBackend::with_buffer(slice_buf, (300, 200)).into_drawing_area();
+            let root = BitMapBackend::with_buffer(slice_buf, (1024, 768)).into_drawing_area();
 
             root.fill(&WHITE).unwrap();
 
@@ -53,14 +53,17 @@ impl Animator {
                 .unwrap();
 
             chart.configure_mesh().draw().unwrap();
+            let mut idx = 0;
             for (label, line) in self.lines.iter() {
+                let color = Palette99::pick(idx).mix(0.9);
+                idx += 1;
                 let style1 = &COLORS1[self.label.get(label).unwrap() % COLORS1.len()];
                 chart.draw_series(
                     LineSeries::new(
                         line.iter().map(|&(x, y)| (x as f32, y as f32)), 
-                        style1)).unwrap()
+                        color.filled())).unwrap()
                         .label(label)
-                        .legend(|(x, y)| PathElement::new(vec![(x, y), (x + 20, y)], &style1.clone()));
+                        .legend(move |(x, y)| Rectangle::new([(x, y - 5), (x + 10, y + 5)], color.filled()));
             
             }            
            
@@ -84,7 +87,7 @@ impl Animator {
             .collect();
         // Update the window with the buffer content
         self.window
-            .update_with_buffer(&u32_slice, 300, 200)
+            .update_with_buffer(&u32_slice, 1024, 768)
             .unwrap();
     }
 }
