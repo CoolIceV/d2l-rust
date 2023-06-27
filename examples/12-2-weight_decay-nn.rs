@@ -3,6 +3,10 @@ use tch::{nn, Device, Kind, Reduction, Tensor};
 use std::ops::Add;
 use d2l::utils::*;
 fn main() {
+
+    // tch::manual_seed(43);
+
+
     let n_train = 20;
     let n_test = 100;
     let num_inputs = 200;
@@ -15,13 +19,13 @@ fn main() {
     let train_iter = data_iter(batch_size, &train_data.0, &train_data.1);
     let test_iter = data_iter(batch_size, &test_data.0, &test_data.1);
 
-    let lambd = 90.;
+    let lambd = 3.;
 
     let device = Device::cuda_if_available();
     let vs = nn::VarStore::new(device);
     
     let cfg = nn::LinearConfig {
-        ws_init: nn::Init::Const(0.),
+        ws_init: nn::Init::Randn { mean: 0., stdev: 1. },
         bs_init: Some(nn::Init::Const(0.)),
         bias: true,
     };
@@ -57,6 +61,11 @@ fn main() {
         // a.draw();
     }
 
+    println!("{:?}", vs.variables());
+    if let Some(parameters) = vs.variables().get("layer1.weight") {
+        let l2_norm = parameters.norm();
+        println!("L2 norm of layer1 parameters: {:?}", l2_norm);
+    }
     // println!("w的L2范数是：");
     // println!("{:?}", model.get(0).unwrap().ws().unwrap().norm(Kind::Float));
 }
