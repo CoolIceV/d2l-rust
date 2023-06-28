@@ -8,7 +8,7 @@ pub fn softmax(x: &Tensor) -> Tensor {
     x_exp / partition
 }
 
-fn relu(x: &Tensor) -> Tensor {
+pub fn relu(x: &Tensor) -> Tensor {
     let a = x.zeros_like();
     x.max_other(&a)
 }

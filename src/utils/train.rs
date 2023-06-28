@@ -43,8 +43,9 @@ impl Accumulator {
     }
 }
 
-fn evaluate_accuracy<T>(model: &T, data_iter: &Vec<(Tensor, Tensor)>) -> f64 
+fn evaluate_accuracy<T>(model: &mut T, data_iter: &Vec<(Tensor, Tensor)>) -> f64 
 where T: Model {
+    model.set_training(false);
     tch::no_grad(|| {
         let mut metric = Accumulator::new(2);
 
@@ -58,8 +59,9 @@ where T: Model {
 }
 
 
-pub fn evaluate_loss<T>(model: &T, data_iter: &Vec<(Tensor, Tensor)>, loss: fn (y_hat: &Tensor, y: &Tensor) -> Tensor) -> f64 
+pub fn evaluate_loss<T>(model: &mut T, data_iter: &Vec<(Tensor, Tensor)>, loss: fn (y_hat: &Tensor, y: &Tensor) -> Tensor) -> f64 
 where T: Model {
+    model.set_training(false);
     tch::no_grad(|| {
         let mut metric = Accumulator::new(2);
 
@@ -76,6 +78,7 @@ where T: Model {
 
 pub fn train_epoch_ch3<T>(model: &mut T, train_iter: &Vec<(Tensor, Tensor)>, loss: fn (y_hat: &Tensor, y: &Tensor) -> Tensor, lr: f64) -> (f64, f64)
 where T: Model {
+    model.set_training(true);
     let mut metric = Accumulator::new(3);
     for (x, y) in train_iter {
         let y_hat = model.forward(&x);
