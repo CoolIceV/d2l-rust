@@ -2,9 +2,9 @@
 
 use super::Animator;
 use super::model::Model;
-use tch::{Tensor, Kind, nn};
+use tch::{Tensor, Kind, nn, Device};
 use tch::IndexOp;
-use tch::nn::{Module, OptimizerConfig};
+use tch::nn::{Module, OptimizerConfig, ModuleT};
 
 fn accuracy(y_hat: &Tensor, y: &Tensor) -> f64 {
     let y_hat = if y_hat.size().len() > 1 && y_hat.size()[1] > 1 {
@@ -152,6 +152,55 @@ fn evaluate_accuracy_ch6(model: &nn::Sequential, data_iter: &Vec<(Tensor, Tensor
 
         for (x, y) in data_iter {
             let y_hat = model.forward(&x);
+            metric.add(vec![accuracy(&y_hat, &y), y.size()[0] as f64]);
+        }
+
+        metric.get(0) / metric.get(1)
+    })
+}
+
+
+pub fn train_epoch_ch6_t(net: &nn::SequentialT, train_iter: &Vec<(Tensor, Tensor)>, opt:&mut nn::Optimizer) -> (f64, f64) {
+    // net.set_training(true);
+    let mut metric = Accumulator::new(3);
+    for (x, y) in train_iter {
+        let x = x.to_device(Device::cuda_if_available());
+        let y = y.to_device(Device::cuda_if_available());
+
+        let loss = net.forward_t(&x, true).cross_entropy_for_logits(&y);
+        
+        opt.backward_step(&loss);
+
+        tch::no_grad(|| {
+            let loss = net.forward_t(&x, false).cross_entropy_for_logits(&y);
+            let train_accuracy = net.forward_t(&x, false).accuracy_for_logits(&y);
+            metric.add(vec![f64::try_from(&loss).unwrap(), f64::try_from(&train_accuracy).unwrap(), 1.]);
+        });
+
+    }
+
+    //loss, train acc
+    (metric.get(0) / metric.get(2), metric.get(1) / metric.get(2))
+}
+
+
+pub fn train_ch6_t(net: &nn::SequentialT, train_iter: &Vec<(Tensor, Tensor)>, test_iter: &Vec<(Tensor, Tensor)>, num_epochs: usize, opt:&mut nn::Optimizer) {
+    for epoch in 0..num_epochs {
+        let (train_l, train_acc) = train_epoch_ch6_t(net, train_iter, opt);
+        let test_acc = evaluate_accuracy_ch6_t(net, test_iter);
+        println!("epoch {:4}, train loss {:8.5}, train acc {:5.2}%, test acc {:5.2}%", epoch, train_l, 100. * train_acc, 100. * test_acc);
+    }
+}
+
+fn evaluate_accuracy_ch6_t(model: &nn::SequentialT, data_iter: &Vec<(Tensor, Tensor)>) -> f64 {
+    tch::no_grad(|| {
+        let mut metric = Accumulator::new(2);
+
+        for (x, y) in data_iter {
+            let x = x.to_device(Device::cuda_if_available());
+            let y = y.to_device(Device::cuda_if_available());
+
+            let y_hat = model.forward_t(&x, false);
             metric.add(vec![accuracy(&y_hat, &y), y.size()[0] as f64]);
         }
 
