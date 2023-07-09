@@ -17,7 +17,7 @@ impl Linear {
 }
 
 impl Model for Linear {
-    fn forward(&self, x: &Tensor) -> Tensor {
+    fn forward(&mut self, x: &Tensor) -> Tensor {
         // x.matmul(&self.ws)
         x.matmul(&self.ws) + &self.bs
     }

@@ -45,7 +45,7 @@ impl MLP {
 }
 
 impl Model for MLP {
-    fn forward(&self, x: &Tensor) -> Tensor {
+    fn forward(&mut self, x: &Tensor) -> Tensor {
         let h = x.matmul(&self.w1) + &self.b1;
         let mut h = relu(&h);
         if self.training {

@@ -18,7 +18,7 @@ impl Conv2D {
 }
 
 impl Model for Conv2D {
-    fn forward(&self, x: &Tensor) -> Tensor {
+    fn forward(&mut self, x: &Tensor) -> Tensor {
         // corr2d(x, &self.w) + &self.b
         corr2d(x, &self.w)
     }
